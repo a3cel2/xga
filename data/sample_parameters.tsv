@@ -1,0 +1,8 @@
+	14-Nov
+output_results_directory 	../results/master_output/nov2014
+resistance_output_prefix	resistance_metrics_nov2014
+lm_output_file	lm_output_2014.Rdata
+sequencing_filename	twas_nov2014_t_5-20_pruned.tsv
+A_resistance_filename	resistance_metrics_nov2014_A.tsv
+alpha_resistance_filename	resistance_metrics_nov2014_alpha.tsv
+drug_control_pair	none

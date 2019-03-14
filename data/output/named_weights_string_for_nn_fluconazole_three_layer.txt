@@ -1,0 +1,20 @@
+PDR5_indirect_influences
+SNQ2	-0.739
+YBT1	-1.042
+YCF1	-1.198
+YOR1	-2.506
+PDR5_indirect_base_activity	0
+
+PDR5_influences
+SNQ2	-0.063
+YBT1	-0.11
+YCF1	-0.037
+YOR1	-0.017
+PDR5_indirect	2.354
+PDR5_base_activity	-1.412
+
+fluconazole efflux per gene
+PDR5	4.823
+basal_offset	-1.261
+
+

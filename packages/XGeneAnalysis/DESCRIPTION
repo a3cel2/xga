@@ -1,0 +1,25 @@
+Package: XGeneAnalysis
+Type: Package
+Title: What the Package Does (Title Case)
+Version: 0.1
+Date: 2016-09-26
+Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
+Description: More about what it does (maybe more than one line)
+License: What license is it under?
+LazyData: TRUE
+RoxygenNote: 6.0.1
+Imports: beeswarm,
+    org.Sc.sgd.db,
+    car,
+    stats,
+    glmnet,
+    h2o,
+    parallel,
+    xlsx,
+    gplots,
+    RColorBrewer,
+    ReorderCluster,
+    ggplot2,
+    dendextend,
+    Cairo,
+    growthcurver
