@@ -4,5 +4,6 @@ scripts/.Rhistory
 .Rdata
 data/output/lm_output_2014.Rdata
 scripts/scratch/
+scripts/
 *.Rhistory
-.Rapp.history
+*.Rapp.history
