@@ -4,5 +4,9 @@ scripts/.Rhistory
 .Rdata
 data/output/lm_output_2014.Rdata
 scripts/scratch
+scripts/demos
+scripts/illustration
+doc/
 *.Rhistory
 *.Rapp.history
+*.Rproj
