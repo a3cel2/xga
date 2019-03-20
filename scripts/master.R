@@ -45,6 +45,7 @@ my_gene_colors <- list(
 blue_black_orange <- grDevices::colorRampPalette(my_color_list)
 black_blue <- grDevices::colorRampPalette(my_color_list[3:5])
 
+#Color palette for genetic interaction plot
 blue_white_red <- grDevices::colorRampPalette(c('#FF0041',rgb(1,1,1),'#00A8FC'))
 
 # Package containing main scripts
@@ -103,7 +104,7 @@ A_resistance_filename <- sample_vals[5]
 # What to call the run-specific resistances generated (MATalpha)
 alpha_resistance_filename <- sample_vals[6]
 # Name of file specifying what the solvent control is for each drug
-# if 'none', default parameters are used for many functions
+# if 'none', default is 'CTRL'  for many functions
 drug_control_pair <- sample_vals[7]
 if (drug_control_pair == 'none') {
   drug_control_pair <- NULL
@@ -173,7 +174,7 @@ lm_input_file <- lm_output_file
 #   all automated analysis of single-strain growth
 #   assays
 
-to_run <- c('Analyze Tecan Data')#Radial Fitness Landscape')#,'NN extensions')#'qRT-PCR' )#'Linear model')#'Fitness Density Plot')#'Merge mating types')#'Genotyping Accuracy')#)#)#'Create resistance metrics','Pool Genotype Group Comparison')
+to_run <- c('Fitness Density Plot')#'NN analysis')#Radial Fitness Landscape')#,'NN extensions')#'qRT-PCR' )#'Linear model')#'Fitness Density Plot')#'Merge mating types')#'Genotyping Accuracy')#)#)#'Create resistance metrics','Pool Genotype Group Comparison')
 
 
 ##Good as -is
@@ -349,7 +350,7 @@ if ('Create resistance metrics' %in% to_run | 'all' %in% to_run) {
   #Put into data frame
   A_df <- c()
   alpha_df <- c()
-  for(drug in drugs[!grepl('CTRL',drugs)]){
+  for(drug in drugs[!grepl('CTRffL',drugs)]){
     fit_A <- all_fit_list[[drug]]$fits_A
     A_df <- cbind(A_df,fit_A)
     colnames(A_df)[ncol(A_df)] <- paste(c(drug,'A'),collapse='_')

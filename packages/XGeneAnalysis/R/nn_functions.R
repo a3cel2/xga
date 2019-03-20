@@ -659,6 +659,11 @@ make_nn_model <- function(resistance_file,
                           train_model = T,
                           efflux_genes = NULL){
 
+  
+  custom_activation <- function(x){
+    activations_linear(x)/(activations_linear(x) + 1)
+  }
+  
 
 
   # Functions which set positive and negative constraints in Keras model weights
@@ -788,8 +793,9 @@ make_nn_model <- function(resistance_file,
       inhibition_layer_vec[[1]] %>%
       keras::layer_dense(
         units = length(condition_names),
-        activation = act_type,
+        activation = custom_activation,
         name = 'efflux_layer',
+        kernel_constraint = pos_constraint,
         kernel_constraint = pos_constraint
       )
   }
