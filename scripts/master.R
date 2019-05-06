@@ -18,7 +18,8 @@ this.dir <- dirname(parent.frame(2)$ofile)
 setwd(this.dir)
 
 #Fixes bug with Mac OS update by loading libjvm from external source
-dyn.load('/Applications/Jalview/jre/Contents/Home/lib/server/libjvm.dylib')
+#in my machine
+#dyn.load('/Applications/Jalview/jre/Contents/Home/lib/server/libjvm.dylib')
 
 
 ########
