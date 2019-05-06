@@ -6,9 +6,9 @@
 \usage{
 make_three_layer_nn_model(resistance_file, genotype_file, condition_names,
   genes = NULL, effect_size_threshold = 0, regularization_rate = 1e-04,
-  learning_rate = 0.01, epochs = 1000, batch_size = 2000,
-  validation_split = 0.1, act_type = "sigmoid", train_model = T,
-  efflux_genes = NULL)
+  regularization_rate_indirect = NULL, learning_rate = 0.01,
+  epochs = 1000, batch_size = 2000, validation_split = 0.1,
+  act_type = "sigmoid", train_model = T, efflux_genes = NULL)
 }
 \description{
 named_weights' = model_weights,

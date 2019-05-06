@@ -34,13 +34,22 @@ make_genotyping_accuracy_barplot <- function(genotyping_accuracy_file,filename){
   names(accs) <- cv_error_results[,1]
   names(accs) <- map_gene_names(names(accs))
   
-  CairoPDF(filename,width=4.5,height=4.5)
+  CairoPDF(filename,width=3.6,height=6)
+  Cairo::CairoFonts(italic="Arial:style=Italic")
   par(las=1)
   par(oma=c(0,2,0,0))
   #par(xpd=T)
-  barplot(sort(accs)*100,horiz=T,col='black',space=0.7,xlim=c(0.5,1)*100,xpd=F,
+  x_coords <- barplot(sort(accs)*100,horiz=T,col='black',space=1.1,xlim=c(0.5,1)*100,xpd=F,
           xlab='Genotyping Accuracy (%)',
-          main='Per-Gene Genotyping Accuracy')
+          ylab = '',
+          main='Per-Gene Genotyping Accuracy',
+          axes = T,
+          axisnames = T,
+          yaxt = 'n'
+          )
+  axis(side = 2, at = x_coords, labels = names(accs), font = 3)
+  
+  
   dev.off()
   
   
@@ -123,7 +132,14 @@ make_linkage_map <- function(A_genotyping_df,
 
 
 knockout_dist_barplot <- function(mapping_file,genotyping_columns=2:17,
-                                  cols=c('black','grey80')){
+                                  cols=c('black','grey80'),
+                                  legend = T,
+                                  xlab = 'Number of Knockouts',
+                                  ylab = 'Strains in the Population\n',
+                                  cex.lab = 2.5,
+                                  cex.axis = 2,
+                                  cex.names = 1.4){
+  
   ngenes <- length(genotyping_columns)
   knockout_sum <- apply(mapping_file[,genotyping_columns],1,sum)
   knockout_table <- table(knockout_sum)
@@ -142,15 +158,25 @@ knockout_dist_barplot <- function(mapping_file,genotyping_columns=2:17,
           beside=T,
           las=1,
           col=cols,
-          xlab='Number of Knockouts',
-          ylab='Strains in the Population\n',
-          cex.lab=2.5,
-          cex.axis=2,
-          cex.names=1.4)
-  legend('topleft',
-         legend=c('Expected strain count\nat 93.8% accuracy','Observed strain count'),
-         fill=cols,
-         y.intersp=1.1,
-         cex=1.5)
+          xlab=xlab,
+          ylab=ylab,
+          cex.lab=cex.lab,
+          cex.axis=cex.axis,
+          cex.names=cex.names,
+          xaxt = 'n')
+  
+  for(gene in 0:ngenes){
+    axis(1, at= 2 + 3*gene, labels = gene,cex.axis = cex.names)
+  }
+  
+  
+  if(legend == T){
+    legend('topleft',
+           legend=c('Expected strain count\nat 93.8% accuracy','Observed strain count'),
+           fill=cols,
+           y.intersp=1.1,
+           cex=1.5)  
+  }
+  
 }
 

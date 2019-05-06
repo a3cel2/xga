@@ -22,4 +22,11 @@ Imports: beeswarm,
     ggplot2,
     dendextend,
     Cairo,
-    growthcurver
+    growthcurver,
+    keras,
+    png,
+    shape,
+    diagram,
+    grDevices,
+    tools,
+    snow

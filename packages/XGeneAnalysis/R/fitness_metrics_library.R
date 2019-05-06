@@ -808,7 +808,9 @@ rhombus_integration <- function(x,y){
 
 ##Function for calculating the total number of doublings a strain
 #undergoes in the pool
-calc_growth <- function(count_list,time_points){
+calc_growth <- function(count_list,
+                        time_points,
+                        initial_count_cutoff = 30){
   count_list_up <- count_list$UP
   count_list_dn <- count_list$DN
 
@@ -868,7 +870,7 @@ calc_growth <- function(count_list,time_points){
       },interval = c(-10,10))$min)
     }
 
-    if(x[1] > 30){
+    if(x[1] > initial_count_cutoff){
       auc <- rhombus_integration(time_points,x_freq*(2^time_points))
 
       #auc <- log2(auc)
@@ -899,7 +901,7 @@ calc_growth <- function(count_list,time_points){
 
     #ndubs[ndubs < 0] <- 0
 
-    if(x[1] > 30){
+    if(x[1] > initial_count_cutoff){
       #return(sum(ndubs))
       return(auc)
     }else{

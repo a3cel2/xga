@@ -90,7 +90,7 @@ calculate_avg_g <- function(ods,times,t5_od=0.46,time_units='hours',by_interval=
     times <- times/60
   }
   
-  #Normalize ods to what I think the Tecan machine is doing
+  #Normalize raw od readings according to Tecan documentation
   min_od <- 0.0625*(t5_od/2)
   ods <- ods - ods[1] + min_od
   

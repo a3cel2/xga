@@ -77,7 +77,8 @@ draw_split_density_distribution <- function(A_genotyping_df = NULL,
                                             groups_drawn = NULL,
                                             swarm_size = 0.01,
                                             genotype_circle_height_constant = 0.05,
-                                            genotype_circle_width_constant = 0.1){
+                                            genotype_circle_width_constant = 0.1,
+                                            cex_axis = 1.6){
   if(mating_type == 'A'){
     combined_df <- cbind(A_genotyping_df, A_resistance_file)
   }
@@ -161,7 +162,7 @@ draw_split_density_distribution <- function(A_genotyping_df = NULL,
          xaxt='n',
          yaxt = 'n',
          bty = 'l',
-         cex.axis=1.6)
+         cex.axis=cex_axis)
 
     for (i in 1:ndensities) {
       combo_control_list <-
@@ -245,7 +246,7 @@ draw_split_density_distribution <- function(A_genotyping_df = NULL,
          xaxt='n',
          yaxt = 'n',
          bty = 'l',
-         cex.axis=1.6)
+         cex.axis=cex_axis)
 
     for (i in 1:ndensities) {
         xpos <- i - 1
@@ -316,7 +317,7 @@ draw_split_density_distribution <- function(A_genotyping_df = NULL,
   }
 
 
-  axis(side = 2, cex.axis = 1.6)
+  axis(side = 2, cex.axis = cex_axis)
   par(las=0)
   mtext('Genotype',side=1,outer=F,cex=2,line=2.5)
   mtext(sprintf('%s resistance',drug),side=2,outer=F,cex=1.7,line=4)

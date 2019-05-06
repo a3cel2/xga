@@ -251,7 +251,7 @@ lm_coefficient_heatmap_v2 <- function(lm_results,
     #Loop twice to draw over rectangles
 
     for(i in 1:nrow(matr)){
-      phenos <- lm_results$lm_list[[rownames(matr)[i]]]$both$data$resistance
+      phenos <- lm_results$lm_list[[rownames(matr)[i]]][[mating_type]]$data$resistance
       dispersion <- mad(log(phenos))*dispersion_constant
 
       limits <- c(-dispersion,dispersion/2)

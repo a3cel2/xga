@@ -1,3 +1,11 @@
+devtools::use_package('keras')
+devtools::use_package('png')
+devtools::use_package('shape')
+devtools::use_package('diagram')
+devtools::use_package('grDevices')
+devtools::use_package('tools')
+devtools::use_package('snow')
+
 library(keras)
 library(png)
 library(shape)
@@ -6,6 +14,63 @@ library(grDevices)
 library(tools)
 library(snow)
 
+#' Draw a diagram for neural network weights
+#'
+#' @param named_model_weights a named list representing weights of the neural
+#' network; output of name_model_weights
+#' @param vacuolar_transporters a vector of transporters to be drawn in the vacuole
+#' @param membrane_transporters  a vector of transporters to be drawn in the membrane
+#' @param transporter_colors a list with transporters as names and colors as values.
+#' defines the drawn colors
+#' @param drug_visual_list a list with drugs as names and a vector of c(color, number of sides) as values.
+#' defines the drawn colors and shapes of the 'drugs' to be effluxed out
+#' @param big_transporters a vector of transporters to be drawn at the 'large' size -
+#' defaults to the five frequently-associated transporters
+#' @param angle_positions_membrane a vector of radians, one for each transporter in membrane_transporters.
+#' defines the angles to plot transporters on the outer membrane
+#' @param angle_positions_vacuole a vector of radians, one for each transporter in vacuolar_transporters.
+#' defines the angles to plot transporters on the vacuole
+#' @param transporter_radius transporter radius (arbitrary units,roughly fraction of plot width) for
+#'  transporters in big_transporters
+#' @param transporter_radius_small transporter radius (arbitrary units,roughly fraction of plot width) for
+#'  transporters not in big_transporters
+#' @param text_size_constant arbitrary constant to specify text size
+#' @param max_compound_dist_from_arrow arbitrary constant defining minimum distance from compound
+#' drawing to the transporter drawing
+#' @param efflux_arrow_length_scale_factor arbitrary constant defining the length of arrows representing
+#' efflux weights (legend updated automatically)
+#' @param efflux_arrow_width_scale_factor arbitrary constant defining the width of arrows representing
+#' efflux weights (legend updated automatically)
+#' @param efflux_line_width_scale_factor arbitrary constant defining the width of lines representing
+#' efflux weights (legend updated automatically)
+#' @param maximum_compound_size arbitrary constant defining the largest to draw compounds given
+#' their efflux weights (legend update automatically)
+#' @param compound_size_constant arbitrary constant defining the size of compounds given their
+#' efflux weights (legend updated automatically)
+#' @param influence_line_width_scale_factor arbitrary constant defining the width of
+#' influence weight lines given their values
+#' @param influence_line_width_max_size arbitrary constant defining the maximum width of
+#' influence weight lines given their values
+#' @param influence_arrowhead_scale_factor arbitrary constant defining the size of
+#' influence weight arrows given their values
+#' @param influence_line_curvature arbitrary constant defining the curvature
+#' of influence weight lines
+#' @param compound_outline_scale_factor arbitrary constant defining the outline line width of drawn
+#' compounds, given their efflux weights (legend updated automatically)
+#' @param min_compound_outline_width arbitrary constant defining the minimum outline line width of drawn
+#' compounds, given their efflux weights (legend updated automatically)
+#' @param legend_position x and y co-ordinates in the legend (plot extends from -1 to 1 in both x and y)
+#' @param legend_size_left arbitrary constant defining the size of the left part of the legend ('I weights')
+#' @param legend_size_right arbitrary constant defining the size of the right part of the legend ('E weights')
+#' @param legend_text_staggering arbitrary constant specifying the gap to leave between the legend text and
+#' the lines in the drawing
+#' @param i_weights_in_legend a vector of I weights to display in the legend
+#' @param e_weights_in_legend a vector of E weights to display in the legend
+#' @param legend_influence_arrow_length arbitrary constant specifying length of influence arrows, given their weight
+#' 
+#' @param legend_column_spacing arbitrary constant specifying space between the left and right side of the legend
+#'
+#' @return NULL; just draws a plot
 draw_model_diagram <- function(named_model_weights,
                                vacuolar_transporters = c('YCF1','NFT1','YBT1'),
                                membrane_transporters = c('PDR5','YOR1','AUS1','SNQ2'),
@@ -59,7 +124,7 @@ draw_model_diagram <- function(named_model_weights,
                                influence_line_width_scale_factor = 20,
                                influence_line_width_max_size = Inf,
                                influence_arrowhead_scale_factor = 0.05,
-                               influence_arrow_curvature = -0.12,
+                               influence_line_curvature = -0.12,
                                compound_outline_scale_factor = 30,
                                min_compound_outline_width = 0.5,
                                legend_position = c(-1.25,1.3),
@@ -68,7 +133,7 @@ draw_model_diagram <- function(named_model_weights,
                                legend_text_staggering = 0.1,
                                i_weights_in_legend = c(-0.04,-0.08,-0.16,-0.32,-0.64),
                                e_weights_in_legend = c(0.5,1,2,4,8,16),
-                               legend_inhibition_arrow_length = 0.3,
+                               legend_influence_arrow_length = 0.3,
                                legend_column_spacing = 0.55
 ){
 
@@ -80,6 +145,7 @@ draw_model_diagram <- function(named_model_weights,
   vacuole_radius <- 0.4
   transporter_radius_default <- transporter_radius
 
+  #Default colour for transporters not specified in parameters
   transporter_color <- rgb(0.3,0.3,0.3)
 
   par(oma=c(0,0,0,0))
@@ -177,16 +243,10 @@ draw_model_diagram <- function(named_model_weights,
         transporter_radius <- transporter_radius_small
       }
 
-
-
       effluxed_drugs <- named_model_weights$efflux_per_gene[gene, , drop =
                                                               F]
       effluxed_drug_names <- colnames(effluxed_drugs)[which(effluxed_drugs != 0)]
       effluxed_drugs <- effluxed_drugs[which(effluxed_drugs != 0)]
-
-      print(gene)
-      print(effluxed_drug_names)
-
 
       if (length(effluxed_drugs) > 0) {
         effluxed_drugs <-
@@ -200,10 +260,8 @@ draw_model_diagram <- function(named_model_weights,
         for (i in 1:length(effluxed_drugs)) {
           if (i %% 2 == 0) {
             test_vec <- c(test_vec, i)
-            #names(test_vec)[length(test_vec)] <- effluxed_drug_names[i]
           } else{
             test_vec <- c(i, test_vec)
-            #names(test_vec)[1] <- effluxed_drug_names[i]
           }
         }
         effluxed_drugs <- effluxed_drugs[test_vec]
@@ -233,8 +291,6 @@ draw_model_diagram <- function(named_model_weights,
             length.out = length(effluxed_drugs)
           )
         }
-
-        #efflux_arrow_length_scale_factor <- 0.03
 
         for (angle_ind in 1:length(angles_plotted)) {
           angle <- angles_plotted[angle_ind]
@@ -267,11 +323,7 @@ draw_model_diagram <- function(named_model_weights,
             ) * sin(angle)
             )
 
-          #print(effluxed_drug_names)
-
-          #compound_icon_position <- c((transporter_radius + 0.05 + efflux_ability/10)*cos(angle),
-          #              (transporter_radius + 0.05 + efflux_ability/10)*sin(angle))
-
+      
 
 
           line_start <- line_start + gene_center
@@ -324,16 +376,9 @@ draw_model_diagram <- function(named_model_weights,
             lcol = 'black'
           )#colorRampPalette(c(drug_col,drug_col,'black'))(10))
 
-          #arrows(line_start[1],
-          #       line_start[2],
-          #       line_end[1],
-          #       line_end[2],
-          #       lwd = efflux_ability*3,
-          #       length = efflux_ability/20)
         }
       }
     }
-    # }
   }
 
   #Get all inhibition relationships
@@ -353,9 +398,6 @@ draw_model_diagram <- function(named_model_weights,
     }
   }
 
- # inhibition_graph <- igraph::graph.data.frame(inhibition_interactions[,1:2],directed=T)
- # graph_layout <- t(sapply(transporter_centers,function(x){x}))
- # graph_layout <- graph_layout[names(igraph::V(inhibition_graph)),]
 
   #Draw them all - assume all inhibition relationships are between big transporters for now
   transporter_radius <- transporter_radius_default
@@ -407,7 +449,7 @@ draw_model_diagram <- function(named_model_weights,
         curvedarrow(
           c(t1_x_adj, t1_y_adj),
           c(t2_x_adj, t2_y_adj),
-          curve = influence_arrow_curvature,
+          curve = influence_line_curvature,
           dr = 0.1,
           segment = c(0.1, 1),
           #angle = 90,
@@ -455,7 +497,7 @@ draw_model_diagram <- function(named_model_weights,
 
     curvedarrow(
       c(legend_position[1] + line_wid/500 + 0.03, drawn_positions[i]),
-      c(legend_position[1] + legend_inhibition_arrow_length, drawn_positions[i]),
+      c(legend_position[1] + legend_influence_arrow_length, drawn_positions[i]),
       curve = 0,
       dr = 0.1,
       segment = c(0, 1),
@@ -526,34 +568,7 @@ draw_model_diagram <- function(named_model_weights,
       ),0
       )
 
-    #print(effluxed_drug_names)
-
-    #compound_icon_position <- c((transporter_radius + 0.05 + efflux_ability/10)*cos(angle),
-    #              (transporter_radius + 0.05 + efflux_ability/10)*sin(angle))
-
-
-
-    #line_start <- line_start
-    #line_end <- line_end + gene_center
     compound_pos <- compound_pos + line_start
-
-
-#
-#     compound_pos <-
-#       c((
-#         transporter_radius + min(
-#           max_compound_dist_from_arrow,
-#           efflux_arrow_width_scale_factor * sqrt(efflux_ability)
-#         ) + efflux_ability * (efflux_arrow_length_scale_factor * 0.5)
-#       ) * cos(angle),
-#       (
-#         transporter_radius + min(
-#           max_compound_dist_from_arrow,
-#           efflux_arrow_width_scale_factor * sqrt(efflux_ability)
-#         ) + efflux_ability * (efflux_arrow_length_scale_factor * 0.5)
-#       ) * sin(angle)
-#       )
-
     compound_size <- min(maximum_compound_size,compound_size_constant*sqrt(efflux_ability))
     filledmultigonal(compound_pos,
                      rx=compound_size,
@@ -645,6 +660,28 @@ name_model_weights <- function(model_weights,
 }
 
 
+
+#' Code to train a single neural networks
+#'
+#' @param resistance_file a matrix with strain names as row names and condition names as column
+#' @param genotype_file a data frame (or matrix) with strain names as row names and genes (optionally, 'Plate')
+#' as column names.  Genotype values for each gene are either 1 for knockout or 0 for wild-type.  Plate is a factor
+#' @param condition_names what to name conditions in the neural network (vector of strings)
+#' @param genes what genes the neural network models in the first layer (and second layer by default)
+#' defaults to column names 2-17 of genotype_file (corresponding to names of all 16 transporters)
+#' @param effect_size_threshold a hard effect size threshold for the neural network - don't use, doesn't train well
+#' @param regularization_rate regularization rate passed to keras
+#' @param learning_rate rate for regularizer_l1 passed to keras (L1 regularization rate)
+#' @param epochs epochs passed to keras; defines number of training epochs
+#' @param batch_size batch_size passed to keras; defines how many examples to sample in gradient descent
+#' @param validation_split validation_split passed to keras
+#' @param act_type act_type passed to keras
+#' @param train_model boolean; do we train the model or just compile it?
+#' @param efflux_genes vector, what genes the neural network models in the second layer
+#'
+#' @return a list containing 'model', the model returned by keras, and 'history', the training
+#' history returned by keras
+
 make_nn_model <- function(resistance_file,
                           genotype_file,
                           condition_names,
@@ -658,88 +695,83 @@ make_nn_model <- function(resistance_file,
                           act_type = 'sigmoid',
                           train_model = T,
                           efflux_genes = NULL){
-
   
-  custom_activation <- function(x){
-    activations_linear(x)/(activations_linear(x) + 1)
-  }
   
-
-
+  
   # Functions which set positive and negative constraints in Keras model weights
   neg_constraint <- function(w) {
     w * k_cast(k_less_equal(w, -effect_size_threshold), k_floatx())
   }
-
+  
   pos_constraint <- function(w) {
     w * k_cast(k_greater_equal(w, effect_size_threshold), k_floatx())
   }
-
+  
   #Tried setting a minimum on all learned effects (assuming regularization >0)
   #but doesn't train well with backprop
   #minimum_constraint <- function(w) {
   #  w * k_cast(k_greater_equal(abs(w), effect_size_threshold), k_floatx())
   #}
-
-
-
+  
+  
+  
   if(is.null(genes)){
     genes <- colnames(genotype_file)[2:17]
   }
-
+  
   if(is.null(efflux_genes)){
     efflux_genes <- genes
     print(efflux_genes)
   }
-
+  
   full_geno_list <- list()
   for(i in 1:length(genes)){
     gene_name <- sprintf('%s_input',genes[i])
-
+    
     #We do 1 - because encoding features as gene presence rather than absence
     full_geno_list[[gene_name]] <- 1 - genotype_file[rownames(resistance_file),genes[i]]
   }
-
+  
   fitness <- resistance_file[,condition_names,drop=F]
-
+  
   #Scale to 0,1 interval
   fitness <- apply(fitness,2,function(fitness){
     ##May add outlier detection or minimum, but try without first
     #fitness <- fitness - quantile(fitness,probs = c(0.01))
     max_fit <- quantile(fitness,probs=1)
     fitness[fitness > max_fit] <- max_fit
-
+    
     #Should already be filtered out as input, but if not...
     fitness[fitness < 0] <- 0
     fitness <- fitness/max(fitness)
-
+    
     #fitness <- fitness - min(fitness)
   })
-
+  
   #Input layer as a list
   input_layers <- list()
   for(gene in genes){
     layer_name <- sprintf('%s_input',gene)
     input_layers[[gene]] <- keras::layer_input(shape = 1, dtype = 'float32', name = layer_name)
   }
-
+  
   #Middle layer - called it protein layer
   protein_layers <- list()
   for(gene in genes){
     layer_name <- sprintf('%s_protein',gene)
     protein_layers[[gene]] <- keras::layer_dense(units = 1, activation = act_type, name = layer_name,
-                                          #Can constrain to be only negative, but not necessary
-                                          #kernel_constraint = neg_constraint,
-                                          kernel_regularizer = keras::regularizer_l1(l = regularization_rate),
-                                          bias_regularizer = keras::regularizer_l1(l = regularization_rate)
+                                                 #Can constrain to be only negative, but not necessary
+                                                 #kernel_constraint = neg_constraint,
+                                                 kernel_regularizer = keras::regularizer_l1(l = regularization_rate),
+                                                 bias_regularizer = keras::regularizer_l1(l = regularization_rate)
     )
   }
-
+  
   #Each gene can get inhibited/activated by input layer
   inhibition_layers <- list()
   for(gene in efflux_genes){
     layer_name <- sprintf('%s_inhibition',gene)
-
+    
     #We don't let a gene modify its own activity
     input_indeces <- which(names(input_layers) != gene)
     input_vec <- c()
@@ -747,38 +779,38 @@ make_nn_model <- function(resistance_file,
       input_vec <- c(input_vec,input_layers[[i]])
     }
     protein_layer <- protein_layers[[gene]]
-
+    
     #This layer is the middle ('protein layer') receiving inhibitory input from all its
     gene_inh_layer <- keras::layer_concatenate(input_vec,name=layer_name) %>% protein_layer
-
-
+    
+    
     #We will multiply the above layer with the appropriate input layer
     input_vec_this_gene <- input_layers[[gene]]
     multiplication_list <- list(gene_inh_layer,input_vec_this_gene)
-
+    
     #Convert to vector for multiply to wor
     multiplication_vec <- c()
     for(i in 1:length(multiplication_list)){
       multiplication_vec <- c(multiplication_vec,multiplication_list[[i]])
     }
-
+    
     layer_name <- sprintf('%s_inhibition_multiplied_by_gene_presence',gene)
-
+    
     #This achieves the goal of multiplying the second layer by the genotype
     gene_inh_layer <- layer_multiply(multiplication_vec,name=layer_name)
-
+    
     #Save each such layer to a list
     inhibition_layers[[gene]] <- gene_inh_layer
   }
-
+  
   #Convert all middle layers into a vector for concatenate to work
   inhibition_layer_vec <- c()
   for(i in 1:length(inhibition_layers)){
     inhibition_layer_vec <- c(inhibition_layer_vec,inhibition_layers[[i]])
   }
-
+  
   #We concatenate the middle layer then send it to the output layer, which is constrained to be positive
-
+  
   if(length(inhibition_layer_vec) > 1){
     efflux_layer <-
       keras::layer_concatenate(inhibition_layer_vec, name = 'total_inhibition') %>%
@@ -793,23 +825,22 @@ make_nn_model <- function(resistance_file,
       inhibition_layer_vec[[1]] %>%
       keras::layer_dense(
         units = length(condition_names),
-        activation = custom_activation,
+        activation = act_type,
         name = 'efflux_layer',
-        kernel_constraint = pos_constraint,
         kernel_constraint = pos_constraint
       )
   }
-
+  
   efflux_model_auto <- keras::keras_model(
     inputs = input_layers,
     outputs = efflux_layer
   )
-
+  
   efflux_model_auto %>% keras::compile(
     loss = 'mse',
     optimizer = optimizer_adam(lr = learning_rate)
   )
-
+  
   if(train_model == T){
     history <- efflux_model_auto %>% keras::fit(
       full_geno_list,
@@ -820,35 +851,222 @@ make_nn_model <- function(resistance_file,
       validation_split = validation_split
     )
   }
-
+  
   model_weights <- keras::get_weights(efflux_model_auto)
-
+  
   message('Training complete')
-
-  #model_weights <- name_model_weights(model_weights,genes,condition_names,efflux_genes = efflux_genes)
-
-
-  #inh_names <- sapply(genes,function(gene){paste(c(gene,'inhibitions'),collapse = '_')})
-  #basal_names <- sapply(genes,function(gene){paste(c(gene,'base_activity'),collapse = '_')})
-  #names(model_weights)[1:(length(genes)*2)] <- c(as.vector(rbind(inh_names,basal_names)))
-  #names(model_weights)[(length(genes)*2) + 1] <- 'efflux_per_gene'
-  #names(model_weights)[(length(genes)*2) + 2] <- 'basal_efflux_offset'
-
-
-  #for(i in c(1:length(genes))*2 - 1){
-  #  gene_name <- names(model_weights)[i]
-  #  gene_name <- strsplit(gene_name,split='_')[[1]][1]
-  #  rownames(model_weights[[i]]) <- genes[genes != gene_name]
-  #}
-  #rownames(model_weights[[length(model_weights) - 1]]) <- genes
-
+  
+  
   return(list('model' = efflux_model_auto,
               #'named_weights' = model_weights,
               'history' = history))
-
+  
 }
 
 
+
+#Tested repeating above with custom activation function
+#in the efflux layer - results are promising but needs work
+# make_nn_model_v2 <- function(resistance_file,
+#                           genotype_file,
+#                           condition_names,
+#                           genes=NULL,
+#                           effect_size_threshold = 0,
+#                           regularization_rate = 1e-04,#.00005,#05,
+#                           learning_rate = 0.01,
+#                           epochs = 2000,
+#                           batch_size = 2000,
+#                           validation_split = 0.1,
+#                           act_type = 'sigmoid',
+#                           train_model = T,
+#                           efflux_genes = NULL){
+# 
+#   
+#   custom_activation <- function(x){
+#     activations_linear(x)/(activations_linear(x) + 1)
+#   }
+#   
+# 
+# 
+#   # Functions which set positive and negative constraints in Keras model weights
+#   neg_constraint <- function(w) {
+#     w * k_cast(k_less_equal(w, -effect_size_threshold), k_floatx())
+#   }
+# 
+#   pos_constraint <- function(w) {
+#     w * k_cast(k_greater_equal(w, effect_size_threshold), k_floatx())
+#   }
+# 
+#   #Tried setting a minimum on all learned effects (assuming regularization >0)
+#   #but doesn't train well with backprop
+#   #minimum_constraint <- function(w) {
+#   #  w * k_cast(k_greater_equal(abs(w), effect_size_threshold), k_floatx())
+#   #}
+# 
+# 
+#   if(is.null(genes)){
+#     genes <- colnames(genotype_file)[2:17]
+#   }
+# 
+#   if(is.null(efflux_genes)){
+#     efflux_genes <- genes
+#     print(efflux_genes)
+#   }
+# 
+#   full_geno_list <- list()
+#   for(i in 1:length(genes)){
+#     gene_name <- sprintf('%s_input',genes[i])
+# 
+#     #We do 1 - because encoding features as gene presence rather than absence
+#     full_geno_list[[gene_name]] <- 1 - genotype_file[rownames(resistance_file),genes[i]]
+#   }
+# 
+#   fitness <- resistance_file[,condition_names,drop=F]
+# 
+#   #Scale to 0,1 interval
+#   fitness <- apply(fitness,2,function(fitness){
+#     ##May add outlier detection or minimum, but try without first
+#     #fitness <- fitness - quantile(fitness,probs = c(0.01))
+#     max_fit <- quantile(fitness,probs=1)
+#     fitness[fitness > max_fit] <- max_fit
+# 
+#     #Should already be filtered out as input, but if not...
+#     fitness[fitness < 0] <- 0
+#     fitness <- fitness/max(fitness)
+# 
+#     #fitness <- fitness - min(fitness)
+#   })
+# 
+#   #Input layer as a list
+#   input_layers <- list()
+#   for(gene in genes){
+#     layer_name <- sprintf('%s_input',gene)
+#     input_layers[[gene]] <- keras::layer_input(shape = 1, dtype = 'float32', name = layer_name)
+#   }
+# 
+#   #Middle layer - called it protein layer
+#   protein_layers <- list()
+#   for(gene in genes){
+#     layer_name <- sprintf('%s_protein',gene)
+#     protein_layers[[gene]] <- keras::layer_dense(units = 1, activation = act_type, name = layer_name,
+#                                           #Can constrain to be only negative, but not necessary
+#                                           #kernel_constraint = neg_constraint,
+#                                           kernel_regularizer = keras::regularizer_l1(l = regularization_rate),
+#                                           bias_regularizer = keras::regularizer_l1(l = regularization_rate)
+#     )
+#   }
+# 
+#   #Each gene can get inhibited/activated by input layer
+#   inhibition_layers <- list()
+#   for(gene in efflux_genes){
+#     layer_name <- sprintf('%s_inhibition',gene)
+# 
+#     #We don't let a gene modify its own activity
+#     input_indeces <- which(names(input_layers) != gene)
+#     input_vec <- c()
+#     for(i in input_indeces){
+#       input_vec <- c(input_vec,input_layers[[i]])
+#     }
+#     protein_layer <- protein_layers[[gene]]
+# 
+#     #This layer is the middle ('protein layer') receiving inhibitory input from all its
+#     gene_inh_layer <- keras::layer_concatenate(input_vec,name=layer_name) %>% protein_layer
+# 
+# 
+#     #We will multiply the above layer with the appropriate input layer
+#     input_vec_this_gene <- input_layers[[gene]]
+#     multiplication_list <- list(gene_inh_layer,input_vec_this_gene)
+# 
+#     #Convert to vector for multiply to wor
+#     multiplication_vec <- c()
+#     for(i in 1:length(multiplication_list)){
+#       multiplication_vec <- c(multiplication_vec,multiplication_list[[i]])
+#     }
+# 
+#     layer_name <- sprintf('%s_inhibition_multiplied_by_gene_presence',gene)
+# 
+#     #This achieves the goal of multiplying the second layer by the genotype
+#     gene_inh_layer <- layer_multiply(multiplication_vec,name=layer_name)
+# 
+#     #Save each such layer to a list
+#     inhibition_layers[[gene]] <- gene_inh_layer
+#   }
+# 
+#   #Convert all middle layers into a vector for concatenate to work
+#   inhibition_layer_vec <- c()
+#   for(i in 1:length(inhibition_layers)){
+#     inhibition_layer_vec <- c(inhibition_layer_vec,inhibition_layers[[i]])
+#   }
+# 
+#   #We concatenate the middle layer then send it to the output layer, which is constrained to be positive
+# 
+#   if(length(inhibition_layer_vec) > 1){
+#     efflux_layer <-
+#       keras::layer_concatenate(inhibition_layer_vec, name = 'total_inhibition') %>%
+#       keras::layer_dense(
+#         units = length(condition_names),
+#         activation = act_type,
+#         name = 'efflux_layer',
+#         kernel_constraint = pos_constraint
+#       )
+#   }else{
+#     efflux_layer <-
+#       inhibition_layer_vec[[1]] %>%
+#       keras::layer_dense(
+#         units = length(condition_names),
+#         activation = custom_activation,
+#         name = 'efflux_layer',
+#         kernel_constraint = pos_constraint
+#       )
+#   }
+# 
+#   efflux_model_auto <- keras::keras_model(
+#     inputs = input_layers,
+#     outputs = efflux_layer
+#   )
+# 
+#   efflux_model_auto %>% keras::compile(
+#     loss = 'mse',
+#     optimizer = optimizer_adam(lr = learning_rate)
+#   )
+# 
+#   if(train_model == T){
+#     history <- efflux_model_auto %>% keras::fit(
+#       full_geno_list,
+#       fitness,
+#       epochs = epochs,
+#       verbose	= 0,
+#       batch_size = batch_size,
+#       validation_split = validation_split
+#     )
+#   }
+# 
+#   model_weights <- keras::get_weights(efflux_model_auto)
+# 
+#   message('Training complete')
+# 
+#   return(list('model' = efflux_model_auto,
+#               #'named_weights' = model_weights,
+#               'history' = history))
+# 
+# }
+
+
+#' p_value testing of neural network models
+#'
+#' @param initial_model a keras transporter neural network model (e.g. in the list returned by make_nn_model)
+#' @param condition_name a vector of one or more conditions for which to test significant weights
+#' @param genotype_file a data frame (or matrix) with strain names as row names and genes (optionally, 'Plate')
+#' as column names.  Genotype values for each gene are either 1 for knockout or 0 for wild-type.  Plate is a factor
+#' @param resistance_file a matrix with strain names as row names and condition names as column
+#' @param nn_model_function function used to train a single neural network (defaults to make_nn_model)
+#' @param nn_model_parameters parameters given to nn_model_function (named list with arguments to nn_model_function), populated automatically for make_nn_model etc
+#' @param genes genes in the first layer of the neural network (and the second layer by default)
+#' @param efflux_genes genes in the second layer of the neural network
+#' @param alpha uncorrected p-value cutoff - Bonferroni correction is applied to this automatically
+#' @param diff_tolerance when calculating a p value, what is the numerical threshold for determining which strain's predictions differ?
+#'
+#' @return a list (of the same format to calling get_weights on a keras model), with non-significant weights set to 0
 nn_p_value_testing <- function(initial_model,
                                condition_name,
                                genotype_file,
@@ -1004,327 +1222,29 @@ nn_p_value_testing <- function(initial_model,
   return(initial_weights)
 
 }
-#
-#
-# nn_stepwise_feature_elimination <- function(initial_model,
-#                                             condition_name,
-#                                             genotype_file,
-#                                             resistance_file,
-#                                             genes = NULL,
-#                                             alpha = 0.05){
-#   initial_weights <- keras::get_weights(initial_model)
-#
-#   if(is.null(genes)){
-#     genes <- colnames(genotype_file)[2:17]
-#   }
-#
-#   full_geno_list <- list()
-#   for(i in 1:length(genes)){
-#     gene_name <- sprintf('%s_input',genes[i])
-#     #We do 1 - because encoding features as gene presence rather than absence
-#     full_geno_list[[gene_name]] <- 1 - genotype_file[rownames(resistance_file),genes[i]]
-#   }
-#
-#
-#
-#
-#   #Get fitness, rescale to 0-1 interval
-#   fitness <- resistance_file[,condition_name,drop=F]
-#   fitness <- apply(fitness,2,function(fitness){
-#     #fitness <- fitness - quantile(fitness,probs = c(0.01))
-#     max_fit <- quantile(fitness,probs=1)
-#     fitness[fitness > max_fit] <- max_fit
-#     fitness <- fitness/max(fitness)
-#     return(fitness)
-#   })
-#
-#   initial_residuals <- (predict(initial_model,full_geno_list) - fitness)
-#
-#
-#   #Have to copy the model in this way, seems model objects are mutable even
-#   #after assignment to new variabe
-#   test_model <- make_nn_model(resistance_file,genotype_file,condition_name,genes=genes,train = F)$model
-#   test_weights <- initial_weights
-#
-#
-#   max_p_val <- 1
-#   n_features <- sum(unlist(initial_weights) != 0)
-#   while(max_p_val > (alpha/n_features)){
-#     p_val_list <- c()
-#
-#     #Initial weights get updated after every elimination step
-#     for(i in 1:length(initial_weights)){
-#       ncols <- ncol(initial_weights[[i]])
-#       if(is.na(ncols)){
-#         for(j in 1:length(initial_weights[[i]])){
-#           if(initial_weights[[i]][j] != 0){
-#
-#             test_weights[[i]][j] <- 0
-#             set_weights(test_model,test_weights)
-#             residuals_new_model <- predict(test_model, full_geno_list) - fitness
-#
-#             #Restore
-#             test_weights[[i]][j] <- initial_weights[[i]][j]
-#             set_weights(test_model,initial_weights)
-#
-#
-#             differing_residuals <- (residuals_new_model != initial_residuals)
-#
-#
-#             #Always comparing to initial model - ensures that cumulative
-#             #eliminations don't worsen significantly from initial model
-#             if(sum(differing_residuals) != 0){
-#               wilcox_test_p <- wilcox.test(residuals_new_model[differing_residuals] ^2,
-#                                       initial_residuals[differing_residuals] ^ 2)$p.val
-#
-#
-#             }else{
-#               #If no effect on predictions, report p-value of 1
-#               wilcox_test_p <- 1
-#             }
-#             p_val_list <- rbind(p_val_list, c(i,j,NA,wilcox_test_p))
-#
-#           }
-#         }
-#       }else{
-#         for(j in 1:nrow(initial_weights[[i]])){
-#           for(k in 1:ncol(initial_weights[[i]])){
-#             if(initial_weights[[i]][j,k] != 0){
-#               test_weights[[i]][j, k] <- 0
-#               set_weights(test_model, test_weights)
-#               residuals_new_model <-
-#                 predict(test_model, full_geno_list) - fitness
-#
-#               #Restore
-#               test_weights[[i]][j, k] <- initial_weights[[i]][j, k]
-#               set_weights(test_model, initial_weights)
-#
-#
-#               differing_residuals <-
-#                 residuals_new_model != initial_residuals
-#
-#
-#               if (sum(differing_residuals) != 0) {
-#                 wilcox_test_p <- wilcox.test(residuals_new_model[differing_residuals] ^ 2,
-#                                         initial_residuals[differing_residuals] ^ 2)$p.val
-#
-#               } else{
-#                 #If no effect on predictions, report p-value of 1
-#                 wilcox_test_p <- 1
-#               }
-#               p_val_list <- rbind(p_val_list, c(i, j, k, wilcox_test_p))
-#             }
-#           }
-#         }
-#
-#
-#       }
-#     }
-#
-#     #Eliminate completely useless weights entirely, no point doing stepwise
-#     useless_feature_rows <- which(p_val_list[,4] > alpha)
-#     for(useless_row_ind in useless_feature_rows){
-#       useless_row <- p_val_list[useless_row_ind, ]
-#       i <- useless_row[1]
-#       j <- useless_row[2]
-#       k <- useless_row[3]
-#
-#       if(is.na(k)){
-#         initial_weights[[i]][j] <- 0
-#       }else{
-#         initial_weights[[i]][j, k] <- 0
-#       }
-#     }
-#
-#     print(p_val_list)
-#
-#     #Now eliminate the worst non-useless_feature
-#     #if not below threshold
-#     useful_feature_rows <- which(p_val_list[,4] != 1)
-#     useful_features <- p_val_list[useful_feature_rows,]
-#     max_p_val <- max(useful_features[,4])
-#     max_p_val_ind <- which.max(useful_features[,4])
-#
-#
-#     if(max_p_val > (alpha/n_features)){
-#       eliminated_row <- useful_features[max_p_val_ind, ]
-#       i <- eliminated_row[1]
-#       j <- eliminated_row[2]
-#       k <- eliminated_row[3]
-#       if(is.na(k)){
-#         initial_weights[[i]][j] <- 0
-#       }else{
-#         initial_weights[[i]][j, k] <- 0
-#       }
-#     }
-#   }
-#   return(initial_weights)
-# }
-#
 
 
-# nn_stepwise_feature_elimination_three_layer <- function(initial_model,
-#                                             condition_name,
-#                                             genotype_file,
-#                                             resistance_file,
-#                                             genes = NULL,
-#                                             efflux_genes = NULL,
-#                                             alpha = 0.05,
-#                                             diff_tolerance = ){
-#   initial_weights <- keras::get_weights(initial_model)
-#
-#   if(is.null(genes)){
-#     genes <- colnames(genotype_file)[2:17]
-#   }
-#
-#   full_geno_list <- list()
-#   for(i in 1:length(genes)){
-#     gene_name <- sprintf('%s_input',genes[i])
-#     #We do 1 - because encoding features as gene presence rather than absence
-#     full_geno_list[[gene_name]] <- 1 - genotype_file[rownames(resistance_file),genes[i]]
-#   }
-#
-#
-#
-#
-#   #Get fitness, rescale to 0-1 interval
-#   fitness <- resistance_file[,condition_name,drop=F]
-#   fitness <- apply(fitness,2,function(fitness){
-#     #fitness <- fitness - quantile(fitness,probs = c(0.01))
-#     max_fit <- quantile(fitness,probs=1)
-#     fitness[fitness > max_fit] <- max_fit
-#     fitness <- fitness/max(fitness)
-#     return(fitness)
-#   })
-#
-#   initial_residuals <- (predict(initial_model,full_geno_list) - fitness)
-#
-#
-#   #Have to copy the model in this way, seems model objects are mutable even
-#   #after assignment to new variabe
-#   test_model <- make_three_layer_nn_model(resistance_file,genotype_file,condition_name,genes=genes,efflux_genes = efflux_genes,train = F)$model
-#   test_weights <- initial_weights
-#
-#
-#   max_p_val <- 1
-#   n_features <- sum(unlist(initial_weights) != 0)
-#   while(max_p_val > (alpha/n_features)){
-#     p_val_list <- c()
-#
-#     #Initial weights get updated after every elimination step
-#     for(i in 1:length(initial_weights)){
-#       ncols <- ncol(initial_weights[[i]])
-#       if(is.na(ncols)){
-#         for(j in 1:length(initial_weights[[i]])){
-#           if(initial_weights[[i]][j] != 0){
-#
-#             test_weights[[i]][j] <- 0
-#             set_weights(test_model,test_weights)
-#             residuals_new_model <- (predict(test_model, full_geno_list) - fitness)
-#
-#             #Restore
-#             test_weights[[i]][j] <- initial_weights[[i]][j]
-#             set_weights(test_model,initial_weights)
-#
-#
-#             differing_residuals <- abs(residuals_new_model - initial_residuals) >= diff_tolerance
-#
-#
-#             #Always comparing to initial model - ensures that cumulative
-#             #eliminations don't worsen significantly from initial model
-#             if(sum(differing_residuals) != 0){
-#               wilcox_test_p <- wilcox.test(residuals_new_model[differing_residuals] ^2,
-#                                       initial_residuals[differing_residuals] ^ 2,
-#                                       paired = T)$p.val
-#
-#
-#             }else{
-#               #If no effect on predictions, report p-value of 1
-#               wilcox_test_p <- 1
-#             }
-#             p_val_list <- rbind(p_val_list, c(i,j,NA,wilcox_test_p))
-#
-#           }
-#         }
-#       }else{
-#         for(j in 1:nrow(initial_weights[[i]])){
-#           for(k in 1:ncol(initial_weights[[i]])){
-#             if(initial_weights[[i]][j,k] != 0){
-#               test_weights[[i]][j, k] <- 0
-#
-#
-#               set_weights(test_model, test_weights)
-#               residuals_new_model <-
-#                 predict(test_model, full_geno_list) - fitness
-#
-#               #Restore
-#               test_weights[[i]][j, k] <- initial_weights[[i]][j, k]
-#               set_weights(test_model, initial_weights)
-#
-#
-#               differing_residuals <-
-#                 abs(residuals_new_model - initial_residuals) >= diff_tolerance
-#
-#
-#               if (sum(differing_residuals) != 0) {
-#                 wilcox_test_p <- wilcox.test(residuals_new_model[differing_residuals] ^ 2,
-#                                         initial_residuals[differing_residuals] ^ 2,
-#                                         paired = T)$p.val
-#
-#               } else{
-#                 #If no effect on predictions, report p-value of 1
-#                 wilcox_test_p <- 1
-#               }
-#               p_val_list <- rbind(p_val_list, c(i, j, k, wilcox_test_p))
-#             }
-#           }
-#         }
-#
-#
-#       }
-#     }
-#
-#     #Eliminate completely useless weights entirely, no point doing stepwise
-#     useless_feature_rows <- which(p_val_list[,4] > alpha)
-#     for(useless_row_ind in useless_feature_rows){
-#       useless_row <- p_val_list[useless_row_ind, ]
-#       i <- useless_row[1]
-#       j <- useless_row[2]
-#       k <- useless_row[3]
-#
-#       if(is.na(k)){
-#         initial_weights[[i]][j] <- 0
-#       }else{
-#         initial_weights[[i]][j, k] <- 0
-#       }
-#     }
-#
-#     print(p_val_list)
-#
-#     #Now eliminate the worst non-useless_feature
-#     #if not below threshold
-#     useful_feature_rows <- which(p_val_list[,4] != 1)
-#     useful_features <- p_val_list[useful_feature_rows,]
-#     max_p_val <- max(useful_features[,4])
-#     max_p_val_ind <- which.max(useful_features[,4])
-#
-#
-#     if(max_p_val > (alpha/n_features)){
-#       eliminated_row <- useful_features[max_p_val_ind, ]
-#       i <- eliminated_row[1]
-#       j <- eliminated_row[2]
-#       k <- eliminated_row[3]
-#       if(is.na(k)){
-#         initial_weights[[i]][j] <- 0
-#       }else{
-#         initial_weights[[i]][j, k] <- 0
-#       }
-#     }
-#   }
-#   return(initial_weights)
-# }
-
-
+#' Train many neural networks and combine the results
+#'
+#' @param resfile a matrix with strain names as row names and condition names as column (same as resistance_file)
+#' @param mapfile a data frame (or matrix) with strain names as row names and genes (optionally, 'Plate'). Same as genotype_file
+#' @param condition_names what to name conditions in the neural network (vector of strings)
+#' @param genes what genes the neural network models in the first layer (and second layer by default)
+#' defaults to column names 2-17 of genotype_file (corresponding to names of all 16 transporters)
+#' @param regularization_rate regularization rate passed to keras
+#' @param learning_rate rate for regularizer_l1 passed to keras (L1 regularization rate)
+#' @param epochs epochs passed to keras; defines number of training epochs
+#' @param batch_size batch_size passed to keras; defines how many examples to sample in gradient descent
+#' @param runs_averaged number of runs to combine 
+#' @param n_clusters how many neural networks to train in parallel
+#' @param validation_split validation_split passed to keras
+#' @param nn_function function used to train a single neural network (defaults to make_nn_model)
+#' @param weight_merging_function function used to merge weights defaults to prune_weight_list
+#' @param efflux_genes vector, what genes the neural network models in the second layer
+#' @param regularization_rate_indirect L1 regularization rate for the indirect connections in the '3 layer model'
+#' @param direct_nn TRUE or FALSE, is the model 2 or 3 layers (i.e. are all I weights direct?)
+#'
+#' @return a list (of the same format to calling get_weights on a keras model), with weights merged from many neural network models
 merge_many_nn_models <- function(resfile,
                                  mapfile,
                                  condition_names,
@@ -1338,26 +1258,48 @@ merge_many_nn_models <- function(resfile,
                                  validation_split = 0.1,
                                  nn_function = make_nn_model,
                                  weight_merging_function = prune_weight_list,
-                                 efflux_genes = NULL){
-  arglist <-
-    list(
-      'resistance_file' = resfile,
-      'genotype_file' = mapfile,
-      'condition_name' = condition_names,
-      'genes' = genes,
-      'efflux_genes' = efflux_genes,
-      'regularization_rate' = regularization_rate,
-      'learning_rate' = learning_rate,
-      'epochs' = epochs,
-      'batch_size' = batch_size
-    )
-
+                                 efflux_genes = NULL,
+                                 regularization_rate_indirect = NULL,
+                                 direct_nn = T){
+  
+  
+  if(direct_nn == T){
+    arglist <-
+      list(
+        'resistance_file' = resfile,
+        'genotype_file' = mapfile,
+        'condition_name' = condition_names,
+        'genes' = genes,
+        'efflux_genes' = efflux_genes,
+        'regularization_rate' = regularization_rate,
+        'learning_rate' = learning_rate,
+        'epochs' = epochs,
+        'batch_size' = batch_size
+      )
+    
+  }else{
+    arglist <-
+      list(
+        'resistance_file' = resfile,
+        'genotype_file' = mapfile,
+        'condition_name' = condition_names,
+        'genes' = genes,
+        'efflux_genes' = efflux_genes,
+        'regularization_rate' = regularization_rate,
+        'regularization_rate_indirect' = regularization_rate_indirect,
+        'learning_rate' = learning_rate,
+        'epochs' = epochs,
+        'batch_size' = batch_size
+      )
+    
+  }
+  
 
   cl <- makeCluster(n_clusters)
-  #clusterExport(cl, ls(.GlobalEnv, all.names = T))
+
   clusterExport(cl, ls(),envir=environment())
   clusterEvalQ(cl, library(keras))
-  #clusterEvalQ(cl, library(twasAnalysis))
+
 
 
   weight_list <- parLapply(cl, 1:runs_averaged, function(x) {
@@ -1385,6 +1327,38 @@ merge_many_nn_models <- function(resfile,
 
 
 
+#' Searches over regularization rates with the neural network training procedure
+#'
+#' @param resfile a matrix with strain names as row names and condition names as column (same as resistance_file)
+#' @param mapfile a data frame (or matrix) with strain names as row names and genes (optionally, 'Plate'). Same as genotype_file
+#' @param condition_names what to name conditions in the neural network (vector of strings)
+#' @param genes what genes the neural network models in the first layer (and second layer by default)
+#' defaults to column names 2-17 of genotype_file (corresponding to names of all 16 transporters)
+#' @param regularization_rates what L1 regularzation rates to search for
+#' @param learning_rate rate for regularizer_l1 passed to keras (L1 regularization rate)
+#' @param epochs epochs passed to keras; defines number of training epochs
+#' @param batch_size batch_size passed to keras; defines how many examples to sample in gradient descent
+#' @param runs_averaged number of runs to combine 
+#' @param n_clusters how many neural networks to train in parallel
+#' @param validation_split validation_split passed to keras
+#' @param nn_function function used to train a single neural network (defaults to make_nn_model)
+#' @param weight_merging_function function used to merge weights defaults to prune_weight_list
+#' @param efflux_genes vector, what genes the neural network models in the second layer
+#' @param regularization_rates_indirect vector, what 'indirect' L1 regularization rates to search over (if null, just sets the indirect rates the same as the direct_rates)
+#' @param three_layer_model TRUE or FALSE, is this a three_layer_model? (i.e. do we use the regulation_rates_indirect argument)
+#' @param searching_indirect TRUE or FALSE,  do we search over regularization_rates_indirect? (if FALSE, just give one argument to regularization_rates_indirect
+#'
+#' @return a data frame (or list of data frames if searching indirect) with the following column names:
+#' 'reg_rate', the L1 regularization rate used
+#' 'mse_initial' the mean-squared error of the neural network before significance testing of weights
+#' 'cor_initial' correlation between predicted and measured resistances before significance testing of weights
+#' 'n_param_initial' the number of non-zero weights before significance testing
+#' 'sum_weights_initial' the sum of absoulte neural network weights before significance testing
+#' 'mse_final' the mean-squared error of the neural network after significance testing of weights
+#' 'cor_final' correlation between predicted and measured resistances after significance testing of weights
+#' 'n_param_final' the number of non-zero weights after significance testing
+#' 'sum_weights_final' the sum of absoulte neural network weights after significance testing
+#' 
 nn_model_search <- function(resfile,
                             mapfile,
                             condition_names,
@@ -1398,7 +1372,10 @@ nn_model_search <- function(resfile,
                             validation_split = 0.1,
                             nn_function = make_nn_model,
                             weight_merging_function = prune_weight_list,
-                            efflux_genes = NULL){
+                            efflux_genes = NULL,
+                            regularization_rates_indirect = NULL,
+                            three_layer_model = F,
+                            searching_indirect = F){
 
   full_geno_list <- list()
   for(i in 1:length(genes)){
@@ -1408,36 +1385,75 @@ nn_model_search <- function(resfile,
 
   resfile <- resfile[ , condition_names, drop = F]
 
+  if(searching_indirect == F){
+    searched_rates <- regularization_rates
+  }else{
+    searched_rates <- regularization_rates_indirect
+  }
+  
+  
+  
   search_df <- c()
-  for(regularization_rate in regularization_rates){
+  for(searched_rate in searched_rates){
 
+    if(searching_indirect == F){
+      regularization_rate <- searched_rate
+      regularization_rate_indirect <- regularization_rates_indirect
+    }else{
+      regularization_rate <- regularization_rates
+      regularization_rate_indirect <- searched_rate
+      
+    }
+    
+      
+    
    # nn_fit <- make_nn_model(resfile,mapfile,condition_names,genes, regularization_rate = regularization_rate )
-
-
-
-    nn_model <- merge_many_nn_models(resfile = resfile,
-                                     mapfile = mapfile,
-                                     condition_names = condition_names,
-                                     genes = genes,
-                                     regularization_rate = regularization_rate,
-                                     learning_rate = learning_rate,
-                                     epochs = epochs,
-                                     batch_size = batch_size,
-                                     runs_averaged = runs_averaged,
-                                     n_clusters = n_clusters,
-                                     validation_split = validation_split,
-                                     nn_function = nn_function,
-                                     weight_merging_function = weight_merging_function,
-                                     efflux_genes = efflux_genes)
-
+    if(three_layer_model == F){
+      nn_model <- merge_many_nn_models(resfile = resfile,
+                                       mapfile = mapfile,
+                                       condition_names = condition_names,
+                                       genes = genes,
+                                       regularization_rate = regularization_rate,
+                                       learning_rate = learning_rate,
+                                       epochs = epochs,
+                                       batch_size = batch_size,
+                                       runs_averaged = runs_averaged,
+                                       n_clusters = n_clusters,
+                                       validation_split = validation_split,
+                                       nn_function = nn_function,
+                                       weight_merging_function = weight_merging_function,
+                                       efflux_genes = efflux_genes)
+      
+    }else{
+      nn_model <- merge_many_nn_models(resfile = resfile,
+                                       mapfile = mapfile,
+                                       condition_names = condition_names,
+                                       genes = genes,
+                                       regularization_rate = regularization_rate,
+                                       learning_rate = learning_rate,
+                                       epochs = epochs,
+                                       batch_size = batch_size,
+                                       runs_averaged = runs_averaged,
+                                       n_clusters = n_clusters,
+                                       validation_split = validation_split,
+                                       nn_function = nn_function,
+                                       weight_merging_function = weight_merging_function,
+                                       efflux_genes = efflux_genes,
+                                       regularization_rate_indirect = regularization_rate_indirect,
+                                       direct_nn = F)
+      
+    }
+    
 
     preds_initial <- predict(nn_model,full_geno_list)
     mse_initial <- mean(unlist(preds_initial - resfile)^2)
     cor_initial <- cor(as.vector(preds_initial), as.vector(resfile))
     nweights_initial <- sum(unlist(keras::get_weights(nn_model)) != 0)
+    sum_weights_initial <- sum(abs(unlist(keras::get_weights(nn_model))))
 
 
-
+    print(get_weights(nn_model))
+    
 
     significant_weights <-
       nn_p_value_testing(
@@ -1452,24 +1468,51 @@ nn_model_search <- function(resfile,
 
     set_weights(nn_model, significant_weights)
 
+    print(get_weights(nn_model))
+    
     preds_pruned <- predict(nn_model,full_geno_list)
     mse_pruned <- mean(unlist(preds_pruned - resfile)^2)
     cor_pruned <- cor(as.vector(preds_pruned), as.vector(resfile))
     nweights_pruned <- sum(unlist(keras::get_weights(nn_model)) != 0)
-
-    search_df <- rbind(search_df, c(regularization_rate, mse_initial, cor_initial, nweights_initial, mse_pruned, cor_pruned, nweights_pruned))
+    sum_weights_pruned <- sum(abs(unlist(keras::get_weights(nn_model))))
+    
+    
+    search_df <- rbind(search_df, 
+                       c(searched_rate, 
+                         mse_initial, 
+                         cor_initial, 
+                         nweights_initial, 
+                         sum_weights_initial,
+                         mse_pruned, 
+                         cor_pruned, 
+                         nweights_pruned,
+                         sum_weights_pruned))
     rm(nn_model)
     k_clear_session()
 
     #.rs.restartR()
   }
 
-  colnames(search_df) <- c('reg_rate','mse_initial','cor_initial','n_param_initial','mse_final','cor_final','n_param_final')
+  colnames(search_df) <- c('reg_rate',
+                           'mse_initial',
+                           'cor_initial',
+                           'n_param_initial',
+                           'sum_weights_initial',
+                           'mse_final',
+                           'cor_final',
+                           'n_param_final',
+                           'sum_weights_final')
 
   return(search_df)
 }
 
 
+#' Average weights from multiple neural network runs
+#'
+#' @param weight_list A list of neural network weights over multiple iterations. Each main sub-list is a list of neural network weihts
+#' returned from calling get_weights on a keras model
+#'
+#' @return returns a single weight list, taking the median over all iterations
 average_weight_list <- function(weight_list) {
   averaged_weight_list <- list()
   for (j in 1:length(weight_list[[1]])) {
@@ -1579,8 +1622,23 @@ prune_weight_list <- function(weight_list,z_cutoff = 4) {
 }
 
 
-
-
+#' Compare modeled neural network predictions with those observed in XGA with a scatterplot
+#'
+#' @param nn_model the neural network model used to make predictions
+#' @param mapfile a data frame (or matrix) with strain names as row names and genes (optionally, 'Plate'). Same as genotype_file
+#' @param resistance_file a matrix with strain names as row names and condition names as column
+#' @param genes_to_predict a vector of genes nn_model was trained with, to use with prediction
+#' @param drug the drug to compare predictions in (string)
+#' @param gene_palette a list, with gene names as names, and colours as entries
+#' @param genes_to_split a vector of genes to average resistance over. Uses the five frequently-associated transporters by default
+#' @param circle_size arbitrary constant defining point size
+#' @param text_size constant defining text size in margins, given to cex
+#' @param text_size_cor constant defining text size in the r value, given to cex
+#' @param xlims given to plot
+#' @param ylims given to plot
+#' @param axis_labels TRUE or FALSE, whether to draw axis labels
+#'
+#' @return NULL, just makes a plot
 compare_nn_predictions <- function(nn_model,
                                    mapfile,
                                    resistance_file,
@@ -1590,8 +1648,10 @@ compare_nn_predictions <- function(nn_model,
                                    genes_to_split=c('SNQ2','PDR5','YBT1','YCF1','YOR1'),
                                    circle_size = 0.04,
                                    text_size = 1.3,
+                                   text_size_cor = 1.3,
                                    xlims = c(0,1),
-                                   ylims = c(0,1)
+                                   ylims = c(0,1),
+                                   axis_labels = T
 
 ){
   #nn_model <- pruned_model_both
@@ -1633,10 +1693,6 @@ compare_nn_predictions <- function(nn_model,
     return(genotype_name)
   })
 
-
-
-
-
   if(is.null(xlims)){
     xmin <- min(mean_comparison[, 1])
     xmax <- max(mean_comparison[, 1])
@@ -1661,17 +1717,24 @@ compare_nn_predictions <- function(nn_model,
   }
 
 
-  par(mar=c(6,6,1,1))
+  if(axis_labels == T){
+    par(mar=c(6,6,1,1))
+  }else{
+    par(mar=c(2,2,1,1))
+  }
+  
   plot(mean_comparison,type='n',
        cex.axis = text_size,
        xlab = '',
        ylab = '',
        xlim = xlims,
        ylim = ylims)
-  mtext('Modeled Resistance - ',1,line=3,cex=text_size)
-  mtext(drug,1,line=4.5,cex=text_size)
-  mtext('Observed Resistance - ',2,line=4.5,cex=text_size)
-  mtext(drug,2,line=3,cex=text_size)
+  if(axis_labels == T){
+    mtext('Modeled Resistance - ',1,line=3,cex=text_size)
+    mtext(drug,1,line=4.5,cex=text_size)
+    mtext('Observed Resistance - ',2,line=4.5,cex=text_size)
+    mtext(drug,2,line=3,cex=text_size)
+  }
        #xlab = ,
        #ylab =
   correl2 <- cor(mean_comparison[,1],mean_comparison[,2])
@@ -1684,18 +1747,40 @@ compare_nn_predictions <- function(nn_model,
   text(xmin + 0.05*xrange,
        ymax - 0.05*yrange,
        paste(c('r = ',format(correl,digits=2),' (',format(correl2,digits=2),')'),collapse=''),
-       cex = text_size,
+       cex = text_size_cor,
        adj = c(0,1))
 
 
 }
 
+#' Creates a three-layer genotype-to-resistance neural network (using both direct and indirect connections)
+#'
+#' @param resistance_file a matrix with strain names as row names and condition names as column
+#' @param genotype_file a data frame (or matrix) with strain names as row names and genes (optionally, 'Plate')
+#' as column names.  Genotype values for each gene are either 1 for knockout or 0 for wild-type.  Plate is a factor
+#' @param condition_names what to name conditions in the neural network (vector of strings)
+#' @param genes what genes the neural network models in the first layer (and second layer by default)
+#' defaults to column names 2-17 of genotype_file (corresponding to names of all 16 transporters)
+#' @param effect_size_threshold a hard effect size threshold for the neural network - don't use, doesn't train well
+#' @param regularization_rate regularization rate passed to keras for the I1 layer
+#' @param regularization_rate_indirect regularization rate passed to keras for the I2 layer
+#' @param learning_rate rate for regularizer_l1 passed to keras (L1 regularization rate)
+#' @param epochs epochs passed to keras; defines number of training epochs
+#' @param batch_size batch_size passed to keras; defines how many examples to sample in gradient descent
+#' @param validation_split validation_split passed to keras
+#' @param act_type act_type passed to keras
+#' @param train_model boolean; do we train the model or just compile it?
+#' @param efflux_genes vector, what genes the neural network models in the second layer
+#'
+#' @return a list containing 'model', the model returned by keras, and 'history', the training
+#' history returned by keras
 make_three_layer_nn_model <- function(resistance_file,
                                       genotype_file,
                                       condition_names,
                                       genes=NULL,
                                       effect_size_threshold = 0,
-                                      regularization_rate = 1e-04,#.00005,#05,
+                                      regularization_rate = 1e-04,
+                                      regularization_rate_indirect = NULL,#.00005,#05,
                                       learning_rate = 0.01,
                                       epochs = 1000,
                                       batch_size = 2000,
@@ -1707,6 +1792,7 @@ make_three_layer_nn_model <- function(resistance_file,
 
 
   # Functions which set positive and negative constraints in Keras model weights
+  # Not used, here for reference
   neg_constraint <- function(w) {
     w * k_cast(k_less_equal(w, -effect_size_threshold), k_floatx())
   }
@@ -1792,12 +1878,16 @@ make_three_layer_nn_model <- function(resistance_file,
     print(gene)
     #print(input_vec)
 
+    if(is.null(regularization_rate_indirect)){
+      regularization_rate_indirect <- regularization_rate
+    }
+    
     #This layer is the middle ('protein layer') receiving inhibitory input from all its
     gene_inh_layer_part1 <- keras::layer_concatenate(input_vec,name=layer_name_direct)
     gene_inh_layer_part2 <- keras::layer_concatenate(input_vec,name=layer_name_indirect) %>%
       keras::layer_dense(units = 1, activation = act_type, name = layer_name_hidden_factor, #kernel_constraint = neg_constraint,
-                  kernel_regularizer = keras::regularizer_l1(l = regularization_rate),
-                  bias_regularizer = keras::regularizer_l1(l = regularization_rate))
+                  kernel_regularizer = keras::regularizer_l1(l = regularization_rate_indirect),
+                  bias_regularizer = keras::regularizer_l1(l = regularization_rate_indirect))
 
 
 
@@ -1875,25 +1965,9 @@ make_three_layer_nn_model <- function(resistance_file,
   model_weights <- keras::get_weights(efflux_model_auto)
 
   message('Training complete')
-  # model_weights <- name_model_weights(model_weights,genes,condition_names)
-  #
-  #
-  # inh_names <- sapply(genes,function(gene){paste(c(gene,'inhibitions'),collapse = '_')})
-  # basal_names <- sapply(genes,function(gene){paste(c(gene,'base_activity'),collapse = '_')})
-  # names(model_weights)[1:(length(genes)*2)] <- c(as.vector(rbind(inh_names,basal_names)))
-  # names(model_weights)[(length(genes)*2) + 1] <- 'efflux_per_gene'
-  # names(model_weights)[(length(genes)*2) + 2] <- 'basal_efflux_offset'
-  #
-  #
-  # for(i in c(1:length(genes))*2 - 1){
-  #   gene_name <- names(model_weights)[i]
-  #   gene_name <- strsplit(gene_name,split='_')[[1]][1]
-  #   rownames(model_weights[[i]]) <- genes[genes != gene_name]
-  # }
-  # rownames(model_weights[[length(model_weights) - 1]]) <- genes
+
 
   return(list('model' = efflux_model_auto,
-              #'named_weights' = model_weights,
               'history' = history))
 
 }
@@ -1962,8 +2036,8 @@ format_named_weights_to_string <- function(named_weights) {
 
 
 
-#Have to work through how to use the R keras
-#backend to do this on anything except toy networks
+
+# Better to use keras backend
 # slow_gradient_calculation <- function(nn_model,
 #                                       nn_input,
 #                                       training_output,

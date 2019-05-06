@@ -60,6 +60,10 @@
   }
 }
 
+#Used in several functions to draw
+#a comparison scatterplot between grouped
+#genotypes (e.g. between individual growth and
+#XGA data)
 .draw_comparison_plot <- function(comparison_df,
                                   metric,
                                   circle_scale_x,
@@ -73,7 +77,10 @@
                                   concentration=NULL,
                                   labcex=1.5,
                                   filter_NA = T,
-                                  digits_in_correl = 3){
+                                  digits_in_correl = 3,
+                                  xlabel = NULL,
+                                  ylabel = NULL,
+                                  mar = NULL){
 
   if(filter_NA){
     has_na <- apply(comparison_df,1,function(x){sum(is.na(x))})
@@ -107,23 +114,48 @@
   par(xpd=T)
   if(metric == 'IC50'){
     main_title <- ''#TWAS Pool Resistance vs Individual IC50'
-    xlabel <- sprintf('Resistance - individual IC50\n(μM %s)',drug)
-    ylabel <- c('Resistance - pool groups')
-    par(mar=c(5.5,5,3,1))
+    if(is.null(xlabel)){
+      xlabel <- sprintf('Resistance - individual IC50\n(μM %s)',drug)  
+    }
+    if(is.null(ylabel)){
+      ylabel <- c('Resistance - pool groups')  
+    }
+    if(is.null(mar)){
+      mar <- c(5.5,5,3,1)
+    }
+    par(mar=mar)
     xline_num <- 5
     maincex <- labcex
   }else if(metric == 'OD'){
-    par(mar=c(4.5,5,3,1))
+    if(is.null(mar)){
+      mar <- c(4.5,5,3,1)
+    }
+    par(mar=mar)
+    
     main_title <- paste(c(drug,paste(c(strsplit(concentration,split='uM')[[1]][1],'μM'),collapse = '')),collapse=' ')
-    xlabel <- 'Resistance - individual strain'
-    ylabel <- c('Resistance - pool groups')
+    if(is.null(xlabel)){
+      xlabel <- 'Resistance - individual strain'
+    }
+    if(is.null(ylabel)){
+      ylabel <- c('Resistance - pool groups')
+    }
+    
     xline_num = 4
     maincex <- labcex*1.5
   }else if(metric == 'Pool-Pool'){
-    par(mar=c(4.5,5,3,1))
+    if(is.null(mar)){
+      mar <- c(4.5,5,3,1)
+    }
+    par(mar=mar)
     main_title <- bquote(italic(.(drug)))#drug#bquote(MAT*bold(a)~-~MAT*bold(α)~comparison~.(drug))
-    xlabel <- bquote(Resistance~-~MAT*bold(a)~Pool)
-    ylabel <- bquote(Resistance~-~MAT*bold(α)~Pool)
+    if(is.null(xlabel)){
+      xlabel <- bquote(Resistance~-~MAT*bold(a)~Pool)  
+    }
+    if(is.null(ylabel)){
+      ylabel <- bquote(Resistance~-~MAT*bold(α)~Pool)  
+    }
+    
+    
     xline_num = 4
     maincex <- labcex*1.5
   }
@@ -200,6 +232,21 @@
 
 
 
+#' Plot a histogram of grouped resistance measurement correlations
+#' between MATa and MATalpha pools
+#'
+#' @param A_resistance_file 
+#' @param alpha_resistance_file 
+#' @param A_genotyping_df genotyping data for MAT
+#' @param alpha_genotyping_df 
+#' @param genes 
+#' @param xlims 
+#' @param breaks 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 mata_matalpha_comparison_histogram <- function(A_resistance_file=NULL,
                                                alpha_resistance_file=NULL,
                                                A_genotyping_df=NULL,

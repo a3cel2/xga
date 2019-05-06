@@ -10,3 +10,5 @@ doc/
 *.Rhistory
 *.Rapp.history
 *.Rproj
+packages/XGeneAnalysis/R/scratch
+packages/XGeneAnalysis/inst/python
