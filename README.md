@@ -51,14 +51,14 @@ The following R packages must be installed prior to running master.R:
     Cairo
     
     growthcurver
- 
- keras
- 
- png
- 
- shape
- 
- diagram
+    
+    keras
+    
+    png
+    
+    shape
+    
+    diagram
  
  grDevices
  
