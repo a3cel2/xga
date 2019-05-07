@@ -22,11 +22,11 @@ Execute master.R within RStudio, change the to_run vector to contain the desired
 ## Dependencies
 The following R packages must be installed prior to running master.R:
 	
-	beeswarm
+    beeswarm
    
-   	org.Sc.sgd.db
+    org.Sc.sgd.db
     
-    	car
+    car
     
     stats
     
@@ -60,8 +60,8 @@ The following R packages must be installed prior to running master.R:
     
     diagram
  
- grDevices
+    grDevices
  
- tools
+    tools
  
- snow
+    snow
