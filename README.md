@@ -1,5 +1,5 @@
 
-Scripts used for 'X'-gene genetic analysis
+Scripts used for X-gene genetic analysis
 
 ## Getting Started
 Execute master.R within RStudio, change the to_run vector to contain the desired analyses (defined in master.R)
