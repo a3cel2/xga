@@ -21,25 +21,47 @@ Execute master.R within RStudio, change the to_run vector to contain the desired
 
 ## Dependencies
 The following R packages must be installed prior to running master.R:
+	
 	beeswarm
-    org.Sc.sgd.db
-    car
+   
+   	org.Sc.sgd.db
+    
+    	car
+    
     stats
+    
     glmnet
+    
     h2o
+    
     parallel
+    
     xlsx
+    
     gplots
+    
     RColorBrewer
+    
     ReorderCluster
+    
     ggplot2
+    
     dendextend
+    
     Cairo
+    
     growthcurver
-    keras
-    png
-    shape
-    diagram
-    grDevices
-    tools
-    snow
+ 
+ keras
+ 
+ png
+ 
+ shape
+ 
+ diagram
+ 
+ grDevices
+ 
+ tools
+ 
+ snow
