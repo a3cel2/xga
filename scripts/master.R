@@ -19,7 +19,7 @@ setwd(this.dir)
 
 #Fixes bug with Mac OS update by loading libjvm from external source
 #in my machine
-#dyn.load('/Applications/Jalview/jre/Contents/Home/lib/server/libjvm.dylib')
+dyn.load('/Applications/Jalview/jre/Contents/Home/lib/server/libjvm.dylib')
 
 
 ########
@@ -576,6 +576,21 @@ if ('Pool Genotype Group Comparison' %in% to_run |
     genes = names(my_gene_colors)[1:5],
     xlims = c(0,1),
     breaks = 10
+  )
+  dev.off()
+  
+  Cairo::CairoFonts(regular = "Arial:style=Regular",
+                    bold = "Arial:style=Bold")
+  CairoPDF(paste(c(outdir, 'err_vs_sd.pdf'), collapse = '/'),
+           width = 4.5,
+           height = 4)
+  mata_matalpha_comparison_err_vs_sd(
+    A_resistance_file = A_resistance_file,
+    alpha_resistance_file = alpha_resistance_file,
+    A_genotyping_df = A_genotyping_df,
+    alpha_genotyping_df = alpha_genotyping_df,
+    genes = names(my_gene_colors)[1:5],
+    xlims = c(0,1)
   )
   dev.off()
   

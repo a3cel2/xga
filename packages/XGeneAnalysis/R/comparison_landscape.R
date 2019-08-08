@@ -80,7 +80,8 @@
                                   digits_in_correl = 3,
                                   xlabel = NULL,
                                   ylabel = NULL,
-                                  mar = NULL){
+                                  mar = NULL,
+                                  write_error=T){
 
   if(filter_NA){
     has_na <- apply(comparison_df,1,function(x){sum(is.na(x))})
@@ -228,6 +229,13 @@
     correl <- format(cor(comparison_df)[1,2],digits=digits_in_correl)
     text(min_x,max_y,bquote(r~"="~.(correl)),adj=c(0,1),cex=labcex*1.5)
   }
+  if(write_error == T){
+    err <- mean(abs(lm(comparison_df[,1] ~ comparison_df[,2])$res))
+    err <- format(err,digits = digits_in_correl - 1)
+    #Manually enterred sigma works better
+    #text(min_x,max_y - 0.1*(max_y - ylims[1]),bquote("σ"[epsilon]~.(paste0('= ',err))),adj=c(0,1),cex=labcex*1.5)
+    text(min_x,max_y - 0.1*(max_y - ylims[1]),bquote("MAE"~.(paste0('= ',err))),adj=c(0,1),cex=labcex*1.5)
+  }
 }
 
 
@@ -274,8 +282,8 @@ mata_matalpha_comparison_histogram <- function(A_resistance_file=NULL,
       twas_frame_A <- split_df_A[[name]]
       twas_frame_alpha <- split_df_alpha[[name]]
 
-      twas_metr_A <- median(twas_frame_A[,sprintf('%s_%s',drug,'A')],na.rm=T)
-      twas_metr_alpha <- median(twas_frame_alpha[,sprintf('%s_%s',drug,'alpha')],na.rm=T)
+      twas_metr_A <- mean(twas_frame_A[,sprintf('%s_%s',drug,'A')],na.rm=T)
+      twas_metr_alpha <- mean(twas_frame_alpha[,sprintf('%s_%s',drug,'alpha')],na.rm=T)
 
 
       return(c(twas_metr_A,twas_metr_alpha))
@@ -545,4 +553,74 @@ calculate_ic_n_from_od_list <- function(od_list,n=50){
     names(retval) <- NULL
     return(retval)
   })
+}
+
+
+mata_matalpha_comparison_err_vs_sd <- function(A_resistance_file=NULL,
+                                               alpha_resistance_file=NULL,
+                                               A_genotyping_df=NULL,
+                                               alpha_genotyping_df=NULL,
+                                               genes = c('PDR5','SNQ2','YOR1','YBT1','YCF1'),
+                                               xlims = NULL
+){
+  single_genes <- genes
+  
+  combined_df <- cbind(A_genotyping_df[rownames(A_resistance_file),], A_resistance_file)
+  split_df_A <- split_df_to_list(combined_df,single_genes)
+  
+  combined_df <- cbind(alpha_genotyping_df, alpha_resistance_file)
+  split_df_alpha <- split_df_to_list(combined_df,single_genes)
+  
+  genes <- names(split_df_A)
+  
+  drugs <- sapply(colnames(A_resistance_file),function(x){strsplit(x,split='_')[[1]][1]})
+  
+  vars <- c()
+  errs <- c()
+  for(drug in drugs){
+    comparison_df <- t(sapply(genes,function(name){
+      
+      twas_frame_A <- split_df_A[[name]]
+      twas_frame_alpha <- split_df_alpha[[name]]
+      
+      twas_metr_A <- mean(twas_frame_A[,sprintf('%s_%s',drug,'A')],na.rm=T)
+      twas_metr_alpha <- mean(twas_frame_alpha[,sprintf('%s_%s',drug,'alpha')],na.rm=T)
+      
+      
+      return(c(twas_metr_A,twas_metr_alpha))
+    }))
+    
+    var <- mean(c(sd(comparison_df[,1]),sd(comparison_df[,2])))
+    vars <- c(vars, var)
+    err <- mean(abs(lm(comparison_df[,1] ~ comparison_df[,2])$res))
+    
+    errs <- c(errs, err)            
+    #cors <- c(cors, cor(comparison_df,use='p')[1,2])
+    
+    print(c(drug,var,err))
+  }
+  
+  par(las = 1)
+  par(mar=c(4,6,1,1))
+  plot(vars,
+       errs,
+       xlab = '',#MAE',
+       ylab = '',#bquote("σ"[resistance]),
+       pch=16,
+       col=rgb(0,0,0,0.8),
+       #cex.lab=1.6,
+       cex.axis=1.5,
+       frame = F)
+  print(cor(vars,errs))
+  mtext('MAE',side=1,line=3,cex=2)
+  par(las = 3)
+  mtext(bquote("σ"[resistance]),side=2,line=4.3,cex=2.5)
+  
+  my_cor <- cor(errs,vars)
+  my_cor <- format(my_cor,digits = 2)
+  
+  text(x=min(vars),y=max(errs) - 0.005,labels= paste(c('r =',my_cor),collapse=' '), pos = 4, adj = c(0,0), cex = 2)
+  
+  
+  #abline(lm(errs~vars))
 }

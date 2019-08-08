@@ -2,7 +2,7 @@
 % Please edit documentation in R/nn_functions.R
 \name{make_three_layer_nn_model}
 \alias{make_three_layer_nn_model}
-\title{named_weights' = model_weights,}
+\title{Creates a three-layer genotype-to-resistance neural network (using both direct and indirect connections)}
 \usage{
 make_three_layer_nn_model(resistance_file, genotype_file, condition_names,
   genes = NULL, effect_size_threshold = 0, regularization_rate = 1e-04,
@@ -10,6 +10,41 @@ make_three_layer_nn_model(resistance_file, genotype_file, condition_names,
   epochs = 1000, batch_size = 2000, validation_split = 0.1,
   act_type = "sigmoid", train_model = T, efflux_genes = NULL)
 }
+\arguments{
+\item{resistance_file}{a matrix with strain names as row names and condition names as column}
+
+\item{genotype_file}{a data frame (or matrix) with strain names as row names and genes (optionally, 'Plate')
+as column names.  Genotype values for each gene are either 1 for knockout or 0 for wild-type.  Plate is a factor}
+
+\item{condition_names}{what to name conditions in the neural network (vector of strings)}
+
+\item{genes}{what genes the neural network models in the first layer (and second layer by default)
+defaults to column names 2-17 of genotype_file (corresponding to names of all 16 transporters)}
+
+\item{effect_size_threshold}{a hard effect size threshold for the neural network - don't use, doesn't train well}
+
+\item{regularization_rate}{regularization rate passed to keras for the I1 layer}
+
+\item{regularization_rate_indirect}{regularization rate passed to keras for the I2 layer}
+
+\item{learning_rate}{rate for regularizer_l1 passed to keras (L1 regularization rate)}
+
+\item{epochs}{epochs passed to keras; defines number of training epochs}
+
+\item{batch_size}{batch_size passed to keras; defines how many examples to sample in gradient descent}
+
+\item{validation_split}{validation_split passed to keras}
+
+\item{act_type}{act_type passed to keras}
+
+\item{train_model}{boolean; do we train the model or just compile it?}
+
+\item{efflux_genes}{vector, what genes the neural network models in the second layer}
+}
+\value{
+a list containing 'model', the model returned by keras, and 'history', the training
+history returned by keras
+}
 \description{
-named_weights' = model_weights,
+Creates a three-layer genotype-to-resistance neural network (using both direct and indirect connections)
 }
